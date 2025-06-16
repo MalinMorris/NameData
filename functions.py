@@ -163,4 +163,24 @@ def top_names(sex, min_y = min_data_year, max_y = max_data_year):
     top.index = names
     top = top.sort_values(by = 'total', ascending = False)
     return top
+
+def biggest_rank_jump(name, sex, min_y = min_data_year, max_y = max_data_year):
+    ranks = []
+    for i in range(min_y, max_y):
+        ranks.append(get_rank(name, sex, i))
+    biggest_jump = 0
+    first_year = 0
+    second_year = 0
+    rank_1 = 0
+    rank_2 = 0
+    for i in range(1, len(ranks)):
+        if abs(ranks[i] - ranks[i-1]) > biggest_jump and ranks[i] != -1 and ranks[i-1] != -1:
+            biggest_jump = (ranks[i] - ranks[i-1]) * -1
+            first_year = i - 1
+            second_year = i
+            rank_1 = ranks[i-1]
+            rank_2 = ranks[i]
+    first_year += min_y
+    second_year += min_y
+    return biggest_jump, first_year, second_year, rank_1, rank_2
     
