@@ -5,6 +5,8 @@ default_color = 'xkcd:periwinkle'
 min_data_year = 1880
 max_data_year = 2025
 data = pd.read_csv("SSANameData.txt")
+generation_starts = {'Missionary' : 1880, 'Lost' : 1883, 'Greatest' : 1901, 'Silent' : 1928, 'Boomers' : 1946, 'Gen X' : 1965, 'Milennial' : 1981,
+                     'Gen X' : 1997, 'Gen Alpha' : 2010, 'Gen Beta' : 2025}
 def name_counts_years(name, sex, min_y = min_data_year, max_y = max_data_year, function = np.equal):
     """Finds the total count and unique number of names that are equal to (or other function) the given name
     with the associated sex. The min_y and max_y (non-inclusive) change the range of years
@@ -66,6 +68,24 @@ def single_year_input(min_y = min_data_year, max_y = (max_data_year - 1), type =
         except ValueError:
             print("please enter a number")
     return year
+
+def gens_years_input(generation_starts):
+    """Asks the user for year input by either using generation definitions or specific years
+    """
+    choice = input("Enter 'g' to use one generation, 'y' to use years, 'a' to use all names: ").lower()
+    if choice == 'g':
+        print(f"The generations are: Missionary (0) 1880-1882, Lost (1) 1883-1900, Greatest (2) 1901-1927, Silent (3) "+
+                "1928-1945, \nBoomer (4) 1946-1964, X (5) 1965-1980, Millennial (6) 1981-1996, Z (7) 1997-2009, Alpha (8) 2010-2024")
+        choice = int(input("Enter the number corresponding with the desired generation: "))
+        min_y = generation_starts[list(generation_starts.keys())[choice]]
+        max_y = generation_starts[list(generation_starts.keys())[choice + 1]]
+    elif choice == 'y':
+        min_y, max_y = fun.year_input()
+    else:
+        min_y = min_data_year
+        max_y = max_data_year
+    return min_y, max_y
+
 
 def multiple_inputs():
     """Asks the user for multiple names and their associated sexes.
@@ -151,20 +171,45 @@ def format_graph(title, year, show = True, x_label = 'year', y_label = 'count'):
     plt.grid(True)
 
 def top_names(sex, min_y = min_data_year, max_y = max_data_year):
+    """Sums up the year counts for each year in the range and sorts the names from most to least popular
+    """
     if sex == 'f' or sex == 'm':
         top = data[data['sex'] == sex]
     else:
         top = data
     names = top['name']
+    sexes = top['sex']
     year_columns = [str(y) for y in range(min_y, max_y)]
     top = top.loc[:, year_columns]
     top['total'] = top.sum(axis = 1)
     top = top.drop(year_columns, axis = 1)
     top.index = names
+    top['sex'] = list(sexes)
     top = top.sort_values(by = 'total', ascending = False)
     return top
 
+def narrow_top_popularity(top):
+    """To be used with the dataframe returned by top_names method to find names in a certain section of the popularity
+    """
+    print("The popularity options are: extremely popular (1), very popular (2), common (3), uncommon(4), \n\trare (5), ultra rare (6), ignore (7)")
+    choice = int(input("Enter the number for the popularity: "))
+    popularities = {'0' : 0, 'e' : 0.01, 'v' : 0.025, 'c' : 0.075, 'u' : 0.2, 'r' : 0.5, 'b' : 1,}
+    top = top[top['total'] > 0]
+    top = top.sort_values(by = 'total', ascending = False)
+    if choice != 7:
+        top_percent = popularities[list(popularities.keys())[choice - 1]]
+        bottom_percent = popularities[list(popularities.keys())[choice]]
+        top_index = int(len(top)*top_percent)
+        if choice == 6:
+            bottom_index = len(top)
+        else:
+            bottom_index = int(len(top)*bottom_percent)
+        top = top.iloc[top_index:bottom_index]
+    return top
+
 def biggest_rank_jump(name, sex, min_y = min_data_year, max_y = max_data_year):
+    """Finds the largest number of ranks the name jumped in a single year over the range
+    """
     ranks = []
     for i in range(min_y, max_y):
         ranks.append(get_rank(name, sex, i))
