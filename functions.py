@@ -2,27 +2,60 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 default_color = 'xkcd:periwinkle'
-min_data_year = 1880
-max_data_year = 2025
-data = pd.read_csv("SSANameData.txt")
+min_data_year = 0
+max_data_year = 0
 generation_starts = {'Missionary' : 1880, 'Lost' : 1883, 'Greatest' : 1901, 'Silent' : 1928, 'Boomers' : 1946, 'Gen X' : 1965, 'Milennial' : 1981,
                      'Gen X' : 1997, 'Gen Alpha' : 2010, 'Gen Beta' : 2025}
-def name_counts_years(name, sex, min_y = min_data_year, max_y = max_data_year, function = np.equal):
+def read_years(min_y, max_y):
+    global min_data_year, max_data_year
+    min_data_year = min_y
+    max_data_year = max_y
+
+
+def read_data(file_path):
+    year_list_f = []
+    year_list_m = []
+    for i in range(min_data_year,max_data_year):
+        file_name = file_path + "/yob" + str(i) + ".txt"
+        df_f = pd.read_csv(file_name, delimiter = ",", names = ['Name', 'Sex', 'Count'])
+        df_f['Name'] = df_f['Name'].apply(lambda x : x.lower())
+        df_m = df_f[~df_f.Sex.str.contains('F')]
+        df_f = df_f[~df_f.Sex.str.contains('M')]
+        df_m = df_m.reset_index(drop = True)
+        year_list_f.append(df_f)
+        year_list_m.append(df_m)
+    return year_list_f, year_list_m
+
+def init(min_y, max_y, data_path="names"):
+    global year_list_f, year_list_m
+    read_years(min_y, max_y)
+    year_list_f, year_list_m = read_data(data_path)
+
+def get_year_list(sex):
+    """Returns the appropriate list given the sex"""
+    return year_list_f if sex == 'f' else year_list_m
+
+def name_counts_years(name, sex, min_y = min_data_year, max_y = max_data_year, function = "equal"):
     """Finds the total count and unique number of names that are equal to (or other function) the given name
     with the associated sex. The min_y and max_y (non-inclusive) change the range of years
     """
-    current_data = data[function(name, data['name'])]
-    length = len(current_data)
-    current_data = current_data[current_data['sex'] == sex]
-    length = len(current_data)
-    current_data.loc['total'] = current_data.sum(numeric_only=True)
-    current_data.loc['num_names'] = (current_data.iloc[0:length] != 0).sum(axis=0)
-
-    year_columns = [str(y) for y in range(min_y, max_y)]
-    name_counts = current_data.loc['total', year_columns].tolist()
-    # name_counts = current_data[year_columns]
-    num_names = current_data.loc['num_names',  (str(min_y)):(str(max_y - 1))].tolist()
-    # num_names = (current_data[year_columns] != 0).sum()
+    year_list = year_list_f
+    name_counts = []
+    num_names = []
+    for i in range(min_y, max_y):
+        current_sum = 0
+        current_df = year_list[i - min_data_year]
+        if function == 'equal':
+            current_df = current_df[current_df['Name'] == name]
+        elif function == 'start':
+            current_df = current_df[current_df['Name'].str.startswith(name)]
+        elif function == 'end':
+            current_df = current_df[current_df['Name'].str.endswith(name)]
+        else:
+            print("function not supported")
+        current_sum = current_df['Count'].sum()
+        name_counts.append(current_sum)
+        num_names.append(len(current_df))
     return name_counts, num_names
 
 def name_input(input_type = "name"):
@@ -80,7 +113,7 @@ def gens_years_input(generation_starts):
         min_y = generation_starts[list(generation_starts.keys())[choice]]
         max_y = generation_starts[list(generation_starts.keys())[choice + 1]]
     elif choice == 'y':
-        min_y, max_y = fun.year_input()
+        min_y, max_y = year_input()
     else:
         min_y = min_data_year
         max_y = max_data_year
@@ -145,11 +178,10 @@ def get_rank(name, sex, year):
     """Returns the rank of a name with its associated sex in the given year where 1 means it
     was the most popular name that year. -1 means it was not in the dataset for that year
     """
-    current_data = pd.read_csv("names/yob" + str(year) + ".txt", names = ['Name', 'Sex', 'Count'])
-    current_data = current_data[current_data['Sex'] == sex.upper()]
-    name_list = current_data['Name'].apply(lambda x : x.lower()).tolist()
-    if name in name_list:
-        return name_list.index(name) + 1
+    year_list = get_year_list(sex)
+    year_as_list = year_list[year-min_data_year]['Name'].to_list()
+    if name in year_as_list:
+        return year_as_list.index(name) + 1
     else:
         return -1
     
@@ -170,23 +202,17 @@ def format_graph(title, year, show = True, x_label = 'year', y_label = 'count'):
     plt.title(title)
     plt.grid(True)
 
-def top_names(sex, min_y = min_data_year, max_y = max_data_year):
+def top_names(sex, top_names = 10, min_y = min_data_year, max_y = max_data_year):
     """Sums up the year counts for each year in the range and sorts the names from most to least popular
     """
-    if sex == 'f' or sex == 'm':
-        top = data[data['sex'] == sex]
-    else:
-        top = data
-    names = top['name']
-    sexes = top['sex']
-    year_columns = [str(y) for y in range(min_y, max_y)]
-    top = top.loc[:, year_columns]
-    top['total'] = top.sum(axis = 1)
-    top = top.drop(year_columns, axis = 1)
-    top.index = names
-    top['sex'] = list(sexes)
-    top = top.sort_values(by = 'total', ascending = False)
-    return top
+    year_list = get_year_list(sex)
+    df_all = year_list[min_y - min_data_year]
+    for i in range(min_y + 1, max_y):
+        df_all = pd.concat([df_all, year_list[i - min_data_year]])
+    df_all['Count'] = df_all.groupby(['Name'])['Count'].transform('sum')
+    df_all = df_all.drop_duplicates(keep = 'first')
+    df_all = df_all.sort_values('Count', ascending = False)
+    return df_all.iloc[0:top_names]
 
 def narrow_top_popularity(top):
     """To be used with the dataframe returned by top_names method to find names in a certain section of the popularity
@@ -208,11 +234,10 @@ def narrow_top_popularity(top):
     return top
 
 def biggest_rank_jump(name, sex, min_y = min_data_year, max_y = max_data_year):
-    """Finds the largest number of ranks the name jumped in a single year over the range
-    """
+    year_list = get_year_list(sex)
     ranks = []
     for i in range(min_y, max_y):
-        ranks.append(get_rank(name, sex, i))
+        ranks.append(get_rank(year_list, i, name))
     biggest_jump = 0
     first_year = 0
     second_year = 0
