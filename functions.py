@@ -140,22 +140,35 @@ def first_nonzero(name_list, min_y = min_data_year):
     """Returns the first year in a list of counts of a name where the value is > 0
     """
     name_list = np.array(name_list)
-    i = np.nonzero(name_list)
+    i = np.nonzero(name_list)[0]
+    if i.size == 0:
+        return max_data_year
     return i[0][0] + min_y
 
 def last_nonzero(name_list, min_y = min_data_year):
     """Returns the last year in a list of counts of a name where the value is > 0
     """
     name_list = np.array(name_list)
-    i = np.nonzero(name_list)
+    i = np.nonzero(name_list)[0]
+    if i.size == 0:
+        return max_data_year
     return i[0][-1] + min_y
 
 def peak_year(name_list, min_y = min_data_year):
     """Returns the year in a list of counts of a name where the count was the highest
     """
-    max_value = max(name_list)
+    filtered = [x for x in name_list if x is not None]
+    max_value = max(filtered)
     max_index = name_list.index(max_value) + min_y
     return max_index, int(max_value)
+
+def valley_year(name_list, min_y = min_data_year):
+    """Returns the year in a list of counts of a name where the count was the lowest
+    """
+    filtered = [x for x in name_list if x is not None]
+    min_value = min(filtered)
+    min_index = name_list.index(min_value) + min_y
+    return min_index, int(min_value)
 
 def calculate_percent_change(name_counts):
     """Calculates the percent change in the count of a name over the entire list of name counts
@@ -185,7 +198,15 @@ def get_rank(name, sex, year):
     else:
         return -1
     
-def make_graph(title, x, y, year, label, color = default_color, show = True, x_label = 'year', y_label = 'count'):
+def name_ranks_years(name, sex, min_y = min_data_year, max_y = max_data_year):
+    ranks = []
+    for i in range(min_y, max_y):
+        r = get_rank(name, sex, i)
+        r = r if r >= 0 else None
+        ranks.append(r)
+    return ranks
+    
+def make_graph(title, x, y, year, label, color = default_color, show = True, x_label = 'count', y_label = 'year'):
     """Creates a line graph with the given label and formats it
     """
     plt.plot(x, y, color = color, label = label)
@@ -253,4 +274,3 @@ def biggest_rank_jump(name, sex, min_y = min_data_year, max_y = max_data_year):
     first_year += min_y
     second_year += min_y
     return biggest_jump, first_year, second_year, rank_1, rank_2
-    
