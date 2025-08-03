@@ -39,7 +39,7 @@ def name_counts_years(name, sex, min_y = min_data_year, max_y = max_data_year, f
     """Finds the total count and unique number of names that are equal to (or other function) the given name
     with the associated sex. The min_y and max_y (non-inclusive) change the range of years
     """
-    year_list = year_list_f
+    year_list = get_year_list(sex)
     name_counts = []
     num_names = []
     for i in range(min_y, max_y):
@@ -143,7 +143,7 @@ def first_nonzero(name_list, min_y = min_data_year):
     i = np.nonzero(name_list)[0]
     if i.size == 0:
         return max_data_year
-    return i[0][0] + min_y
+    return i[0] + min_y
 
 def last_nonzero(name_list, min_y = min_data_year):
     """Returns the last year in a list of counts of a name where the value is > 0
@@ -152,7 +152,7 @@ def last_nonzero(name_list, min_y = min_data_year):
     i = np.nonzero(name_list)[0]
     if i.size == 0:
         return max_data_year
-    return i[0][-1] + min_y
+    return i[-1] + min_y
 
 def peak_year(name_list, min_y = min_data_year):
     """Returns the year in a list of counts of a name where the count was the highest
