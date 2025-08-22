@@ -4,8 +4,7 @@ import matplotlib.pyplot as plt
 default_color = 'xkcd:periwinkle'
 min_data_year = 0
 max_data_year = 0
-generation_starts = {'Missionary' : 1880, 'Lost' : 1883, 'Greatest' : 1901, 'Silent' : 1928, 'Boomers' : 1946, 'Gen X' : 1965, 'Milennial' : 1981,
-                     'Gen X' : 1997, 'Gen Alpha' : 2010, 'Gen Beta' : 2025}
+
 def read_years(min_y, max_y):
     global min_data_year, max_data_year
     min_data_year = min_y
@@ -108,10 +107,12 @@ def gens_years_input(generation_starts):
     choice = input("Enter 'g' to use one generation, 'y' to use years, 'a' to use all names: ").lower()
     if choice == 'g':
         print(f"The generations are: Missionary (0) 1880-1882, Lost (1) 1883-1900, Greatest (2) 1901-1927, Silent (3) "+
-                "1928-1945, \nBoomer (4) 1946-1964, X (5) 1965-1980, Millennial (6) 1981-1996, Z (7) 1997-2009, Alpha (8) 2010-2024")
+                "1928-1945, \nBoomers (4) 1946-1964, X (5) 1965-1980, Millennial (6) 1981-1996, Z (7) 1997-2009, Alpha (8) 2010-2024")
         choice = int(input("Enter the number corresponding with the desired generation: "))
-        min_y = generation_starts[list(generation_starts.keys())[choice]]
-        max_y = generation_starts[list(generation_starts.keys())[choice + 1]]
+        # choice = input("Enter the exact name for the generation")
+        years = generation_starts[list(generation_starts.keys())[choice]]
+        min_y = years[0]
+        max_y = years[1]
     elif choice == 'y':
         min_y, max_y = year_input()
     else:
@@ -241,8 +242,8 @@ def narrow_top_popularity(top):
     print("The popularity options are: extremely popular (1), very popular (2), common (3), uncommon(4), \n\trare (5), ultra rare (6), ignore (7)")
     choice = int(input("Enter the number for the popularity: "))
     popularities = {'0' : 0, 'e' : 0.01, 'v' : 0.025, 'c' : 0.075, 'u' : 0.2, 'r' : 0.5, 'b' : 1,}
-    top = top[top['total'] > 0]
-    top = top.sort_values(by = 'total', ascending = False)
+    top = top[top['Count'] > 0]
+    top = top.sort_values(by = 'Count', ascending = False)
     if choice != 7:
         top_percent = popularities[list(popularities.keys())[choice - 1]]
         bottom_percent = popularities[list(popularities.keys())[choice]]
