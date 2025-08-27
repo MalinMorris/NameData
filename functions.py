@@ -226,6 +226,7 @@ def format_graph(title, year, show = True, x_label = 'year', y_label = 'count'):
 
 def top_names(sex, top_names = 10, min_y = min_data_year, max_y = max_data_year):
     """Sums up the year counts for each year in the range and sorts the names from most to least popular
+    Set top_names to -1 to return all names
     """
     year_list = get_year_list(sex)
     df_all = year_list[min_y - min_data_year]
@@ -234,7 +235,10 @@ def top_names(sex, top_names = 10, min_y = min_data_year, max_y = max_data_year)
     df_all['Count'] = df_all.groupby(['Name'])['Count'].transform('sum')
     df_all = df_all.drop_duplicates(keep = 'first')
     df_all = df_all.sort_values('Count', ascending = False)
-    return df_all.iloc[0:top_names]
+    if top_names == -1:
+        return df_all
+    else:
+        return df_all.iloc[0:top_names]
 
 def narrow_top_popularity(top):
     """To be used with the dataframe returned by top_names method to find names in a certain section of the popularity
@@ -254,6 +258,24 @@ def narrow_top_popularity(top):
             bottom_index = int(len(top)*bottom_percent)
         top = top.iloc[top_index:bottom_index]
     return top
+
+def names_with_string(string, sex, min_y = min_data_year, max_y = max_data_year, function = 'start'):
+    """Give a string to start, end, or be contained in a name and get a dataframe of the total sum of that name
+    and the number of years it appeared in"""
+    year_list = get_year_list(sex)
+    data_names = pd.DataFrame(columns=['Name', 'Sex', 'Count', 'Years'])
+    for i in range(min_y, max_y):
+        current_df = year_list[i - min_data_year].copy()
+        if function == 'start':
+            current_df = current_df[current_df['Name'].str.startswith(string)]
+        elif function == 'end':
+            current_df = current_df[current_df['Name'].str.endswith(string)]
+        else:
+            print("function not supported")
+        current_df['Years'] = 1
+        data_names = pd.concat([data_names, current_df], axis=0)
+    final_names = data_names.groupby('Name', as_index=False).agg({'Count' : 'sum', 'Years' : 'count'}).reset_index()
+    return final_names.drop('index', axis = 1)
 
 def biggest_rank_jump(name, sex, min_y = min_data_year, max_y = max_data_year):
     year_list = get_year_list(sex)
