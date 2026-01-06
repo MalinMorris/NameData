@@ -159,9 +159,12 @@ def peak_year(name_list, min_y = min_data_year):
     """Returns the year in a list of counts of a name where the count was the highest
     """
     filtered = [x for x in name_list if x is not None]
-    max_value = max(filtered)
-    max_index = name_list.index(max_value) + min_y
-    return max_index, int(max_value)
+    if len(filtered) > 0:
+        max_value = max(filtered)
+        max_index = name_list.index(max_value) + min_y
+        return max_index, int(max_value)
+    else:
+        return -1, 0
 
 def valley_year(name_list, min_y = min_data_year):
     """Returns the year in a list of counts of a name where the count was the lowest
@@ -229,12 +232,13 @@ def top_names(sex, top_names = 10, min_y = min_data_year, max_y = max_data_year)
     Set top_names to -1 to return all names
     """
     year_list = get_year_list(sex)
-    df_all = year_list[min_y - min_data_year]
-    for i in range(min_y + 1, max_y):
+    df_all = pd.DataFrame(columns = year_list[0].columns)
+    for i in range(min_y, max_y):
         df_all = pd.concat([df_all, year_list[i - min_data_year]])
     df_all['Count'] = df_all.groupby(['Name'])['Count'].transform('sum')
     df_all = df_all.drop_duplicates(keep = 'first')
     df_all = df_all.sort_values('Count', ascending = False)
+    df_all = df_all.reset_index(drop = True)
     if top_names == -1:
         return df_all
     else:
