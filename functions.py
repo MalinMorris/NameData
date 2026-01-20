@@ -170,9 +170,12 @@ def valley_year(name_list, min_y = min_data_year):
     """Returns the year in a list of counts of a name where the count was the lowest
     """
     filtered = [x for x in name_list if x is not None]
-    min_value = min(filtered)
-    min_index = name_list.index(min_value) + min_y
-    return min_index, int(min_value)
+    if len(filtered) > 0:
+        min_value = min(filtered)
+        min_index = name_list.index(min_value) + min_y
+        return min_index, int(min_value)
+    else:
+        return -1, 0
 
 def calculate_percent_change(name_counts):
     """Calculates the percent change in the count of a name over the entire list of name counts

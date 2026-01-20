@@ -1,3 +1,4 @@
+name,rank_jump,first_year,second_year,rank_1,rank_2
 jaslene,17757,2006,2007,18357,600
 jenascia,-15183,2004,2005,2433,17616
 lashanti,15092,2001,2002,16796,1704
