@@ -34,6 +34,11 @@ def get_year_list(sex):
     """Returns the appropriate list given the sex"""
     return year_list_f if sex == 'f' else year_list_m
 
+def get_year_list_one(sex, year):
+    """Returns the appropriate dataframe given the sex and year"""
+    l = year_list_f if sex == 'f' else year_list_m
+    return l[year - min_data_year]
+
 def name_counts_years(name, sex, min_y = min_data_year, max_y = max_data_year, function = "equal"):
     """Finds the total count and unique number of names that are equal to (or other function) the given name
     with the associated sex. The min_y and max_y (non-inclusive) change the range of years
@@ -52,9 +57,30 @@ def name_counts_years(name, sex, min_y = min_data_year, max_y = max_data_year, f
             current_df = current_df[current_df['Name'].str.endswith(name)]
         else:
             print("function not supported")
+            return [], []
         current_sum = current_df['Count'].sum()
         name_counts.append(current_sum)
         num_names.append(len(current_df))
+    return name_counts, num_names
+
+def name_counts_simple(name, sex, min_y = min_data_year, max_y = max_data_year, function = "equal"):
+    """Similar as name_counts_years but returns only the sum and the total names as integers instead of list"""
+    year_list = get_year_list(sex)
+    name_counts = 0
+    num_names = 0
+    for i in range(min_y, max_y):
+        current_df = year_list[i - min_data_year]
+        if function == 'equal':
+            current_df = current_df[current_df['Name'] == name]
+        elif function == 'start':
+            current_df = current_df[current_df['Name'].str.startswith(name)]
+        elif function == 'end':
+            current_df = current_df[current_df['Name'].str.endswith(name)]
+        else:
+            print("function not supported")
+            return -1, -1
+        name_counts += current_df['Count'].sum()
+        num_names += len(current_df)
     return name_counts, num_names
 
 def name_input(input_type = "name"):
@@ -284,23 +310,73 @@ def names_with_string(string, sex, min_y = min_data_year, max_y = max_data_year,
     final_names = data_names.groupby('Name', as_index=False).agg({'Count' : 'sum', 'Years' : 'count'}).reset_index()
     return final_names.drop('index', axis = 1)
 
-def biggest_rank_jump(name, sex, min_y = min_data_year, max_y = max_data_year):
+def biggest_rank_jump(name, sex, min_rank = 1000, min_jump = 100, min_y = min_data_year, max_y = max_data_year):
+    """Finds the largest rank jumps of a name as long as start or end rank is >= min rank and number of ranks
+    moved is >= min_jump"""
     year_list = get_year_list(sex)
     ranks = []
-    for i in range(min_y, max_y):
-        ranks.append(get_rank(year_list, i, name))
-    biggest_jump = 0
-    first_year = 0
-    second_year = 0
-    rank_1 = 0
-    rank_2 = 0
+    for i in range(1880, 2025):
+        ranks.append(get_rank(name, sex, i))
+    jumps = pd.DataFrame(columns = ["Name", "Ranks", "y1", "y2", "r1", "r2"])
     for i in range(1, len(ranks)):
-        if abs(ranks[i] - ranks[i-1]) > biggest_jump and ranks[i] != -1 and ranks[i-1] != -1:
-            biggest_jump = (ranks[i] - ranks[i-1]) * -1
-            first_year = i - 1
-            second_year = i
-            rank_1 = ranks[i-1]
-            rank_2 = ranks[i]
-    first_year += min_y
-    second_year += min_y
-    return biggest_jump, first_year, second_year, rank_1, rank_2
+        num_ranks = abs(ranks[i] - ranks[i - 1])
+        r1 = ranks[i - 1]
+        r2 = ranks[i]
+        if (r1 <= min_rank or r2 <= min_rank) and (r1 != -1 and r2 != -1) and num_ranks >= min_jump:
+            jumps.loc[len(jumps)] = (name, num_ranks, i - 1 + min_data_year, i + min_data_year, r1, r2)
+    return jumps
+
+def unique_names_one(sex, min_y = max_data_year, max_y = max_data_year):
+    """Returns all of the names and number of names that only appear for the given sex and do not appear in both lists"""
+    year_list = get_year_list(sex)
+    unique = set()
+    for i in range(min_y,max_y):
+        y = year_list[i - min_data_year]
+        for n in y['Name']:
+            unique.add(n)
+    num_names = len(unique)
+    return unique, num_names
+
+def unique_names_total_solo(min_y = max_data_year, max_y = max_data_year):
+    """Returns all of the unique names in the data set when unique male and female names have 
+    not already been found with unique_name_one"""
+    f_list, _ = unique_names_one("f", min_y, max_y)
+    m_list, _ = unique_names_one("m", min_y, max_y)
+    total = f_list.union(m_list)
+    return total, len(total)
+
+def unique_names_total(f_list, m_list):
+    """Returns all of the unique names in the data set when unique male and female names have 
+    already been found with unique_name_one"""
+    total = f_list.union(m_list)
+    return total, len(total)
+
+def unisex_names_solo(min_y = max_data_year, max_y = max_data_year):
+    """Returns all names appearing in both male and female lists when unique male and female names have
+    not already been found with unique_name_one"""
+    f_list, _ = unique_names_one("f", min_y, max_y)
+    m_list, _ = unique_names_one("m", min_y, max_y)
+    unisex = f_list.intersection(m_list)
+    return unisex, len(unisex)
+
+def unisex_names(f_list, m_list):
+    """Returns all names appearing in both male and female lists when unique male and female names have
+    already been found with unique_name_one"""
+    unisex = f_list.intersection(m_list)
+    return unisex, len(unisex)
+
+def sum_name_list(names, sex, min_y = min_data_year, max_y = max_data_year):
+    """Takes a list of just names and a sex (b for both) and creates a dataframe of the name, sex,
+    and total count over the range of years"""
+    result = pd.DataFrame(columns = ["Name", "Sex", "Count"])
+    if sex != "b":
+        for n in names:
+            s = name_counts_simple(n, sex, min_y, max_y)
+            result.loc[len(result)] = (n, sex, s)
+    elif sex == "b":
+        for n in names:
+            sm = name_counts_simple(n, "m", min_y, max_y)
+            result.loc[len(result)] = (n, sex, sm)
+            sf = name_counts_simple(n, "f", min_y, max_y)
+            result.loc[len(result)] = (n, sex, sf)
+    return result
