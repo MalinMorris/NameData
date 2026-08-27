@@ -2,8 +2,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 default_color = 'xkcd:periwinkle'
-min_data_year = 0
-max_data_year = 0
+min_data_year = 1880
+max_data_year = 2026
 
 def read_years(min_y, max_y):
     global min_data_year, max_data_year
@@ -32,6 +32,7 @@ def init(min_y, max_y, data_path="names"):
 
 def get_year_list(sex):
     """Returns the appropriate list given the sex"""
+    sex = sex.lower()
     return year_list_f if sex == 'f' else year_list_m
 
 def get_year_list_one(sex, year):
@@ -43,6 +44,8 @@ def name_counts_years(name, sex, min_y = min_data_year, max_y = max_data_year, f
     """Finds the total count and unique number of names that are equal to (or other function) the given name
     with the associated sex. The min_y and max_y (non-inclusive) change the range of years
     """
+    name = name.lower()
+    sex = sex.lower()
     year_list = get_year_list(sex)
     name_counts = []
     num_names = []
@@ -224,12 +227,26 @@ def get_rank(name, sex, year):
     """Returns the rank of a name with its associated sex in the given year where 1 means it
     was the most popular name that year. -1 means it was not in the dataset for that year
     """
-    year_list = get_year_list(sex)
-    year_as_list = year_list[year-min_data_year]['Name'].to_list()
+    year_list = get_year_list_one(sex, year)
+    year_as_list = year_list['Name'].to_list()
     if name in year_as_list:
         return year_as_list.index(name) + 1
     else:
         return -1
+
+def get_count(name, sex, year):
+    """Returns the count of a name with its associated sex in the given year. 
+    0 means it was not in the dataset for that year
+    """
+    year_data = get_year_list_one(sex, year)
+    year_data = year_data[year_data["Name"] == name]
+    return year_data["Count"].sum()
+
+def get_name_from_rank(rank, sex, year):
+    """Returns the name at the given rank for the associated sex, along with its count"""
+    year_list = get_year_list_one(sex, year)
+    name_row = year_list.iloc[rank - 1]
+    return name_row["Name"], name_row["Count"]
     
 def name_ranks_years(name, sex, min_y = min_data_year, max_y = max_data_year):
     ranks = []
